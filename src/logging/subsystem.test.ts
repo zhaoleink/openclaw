@@ -162,13 +162,25 @@ describe("subsystem logger caches file logger", () => {
 });
 
 describe("file transport date rollover", () => {
+  function localDateStr(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
   it("switches to the new date file after midnight", () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-log-rollover-"));
-    const day1 = new Date("2026-04-07T23:59:59.000+08:00");
+    // Use two instants 24h apart at noon UTC — guaranteed to land on different
+    // local dates regardless of the host timezone.
+    const day1Time = new Date("2026-04-07T12:00:00.000Z");
+    const day2Time = new Date("2026-04-08T12:00:00.000Z");
+    const day1Str = localDateStr(day1Time);
+    const day2Str = localDateStr(day2Time);
 
-    vi.useFakeTimers({ now: day1 });
+    vi.useFakeTimers({ now: day1Time });
     try {
-      const day1File = path.join(tmpDir, "openclaw-2026-04-07.log");
+      const day1File = path.join(tmpDir, `openclaw-${day1Str}.log`);
       setLoggerOverride({ level: "info", consoleLevel: "silent", file: day1File });
       const log = createSubsystemLogger("diagnostic");
 
@@ -176,11 +188,11 @@ describe("file transport date rollover", () => {
       expect(fs.existsSync(day1File)).toBe(true);
       expect(fs.readFileSync(day1File, "utf8")).toContain("before midnight");
 
-      // Advance past midnight.
-      vi.setSystemTime(new Date("2026-04-08T00:00:01.000+08:00"));
+      // Advance to the next day.
+      vi.setSystemTime(day2Time);
 
       log.info("after midnight");
-      const day2File = path.join(tmpDir, "openclaw-2026-04-08.log");
+      const day2File = path.join(tmpDir, `openclaw-${day2Str}.log`);
       expect(fs.existsSync(day2File)).toBe(true);
       expect(fs.readFileSync(day2File, "utf8")).toContain("after midnight");
       // Day 1 file should NOT contain the post-midnight log.
