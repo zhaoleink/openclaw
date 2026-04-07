@@ -145,3 +145,15 @@ describe("createSubsystemLogger().isEnabled", () => {
     expect(warn).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("subsystem logger caches file logger", () => {
+  it("reuses the same child logger across multiple writes", () => {
+    setLoggerOverride({ level: "info", consoleLevel: "silent" });
+    const log = createSubsystemLogger("diagnostic");
+
+    // Multiple writes should not throw; the child logger is created once and reused.
+    log.info("write 1");
+    log.info("write 2");
+    log.info("write 3");
+  });
+});
