@@ -3175,6 +3175,9 @@ export const GENERATED_BASE_CONFIG_SCHEMA: BaseConfigSchemaResponse = {
                 description:
                   "Optional repository root shown in the system prompt runtime line (overrides auto-detect).",
               },
+              systemPromptOverride: {
+                type: "string",
+              },
               skipBootstrap: {
                 type: "boolean",
               },
@@ -3459,6 +3462,18 @@ export const GENERATED_BASE_CONFIG_SCHEMA: BaseConfigSchemaResponse = {
                         {
                           type: "string",
                           const: "list",
+                        },
+                      ],
+                    },
+                    imagePathScope: {
+                      anyOf: [
+                        {
+                          type: "string",
+                          const: "temp",
+                        },
+                        {
+                          type: "string",
+                          const: "workspace",
                         },
                       ],
                     },
@@ -5374,6 +5389,9 @@ export const GENERATED_BASE_CONFIG_SCHEMA: BaseConfigSchemaResponse = {
                   type: "string",
                 },
                 agentDir: {
+                  type: "string",
+                },
+                systemPromptOverride: {
                   type: "string",
                 },
                 model: {

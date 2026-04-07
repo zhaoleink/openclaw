@@ -1,6 +1,10 @@
 import crypto from "node:crypto";
 import path from "node:path";
 import { formatErrorMessage } from "openclaw/plugin-sdk/error-runtime";
+import {
+  normalizeOptionalLowercaseString,
+  normalizeOptionalString,
+} from "openclaw/plugin-sdk/text-runtime";
 import { resolveBlueBubblesServerAccount } from "./account-resolve.js";
 import { assertMultipartActionOk, postMultipartFormData } from "./multipart.js";
 import {
@@ -53,7 +57,7 @@ function ensureExtension(filename: string, extension: string, fallbackBase: stri
 }
 
 function resolveVoiceInfo(filename: string, contentType?: string) {
-  const normalizedType = contentType?.trim().toLowerCase();
+  const normalizedType = normalizeOptionalLowercaseString(contentType);
   const extension = path.extname(filename).toLowerCase();
   const isMp3 =
     extension === ".mp3" || (normalizedType ? AUDIO_MIME_MP3.has(normalizedType) : false);
@@ -161,7 +165,7 @@ export async function sendBlueBubblesAttachment(params: {
   const wantsVoice = asVoice === true;
   const fallbackName = wantsVoice ? "Audio Message" : "attachment";
   filename = sanitizeFilename(filename, fallbackName);
-  contentType = contentType?.trim() || undefined;
+  contentType = normalizeOptionalString(contentType);
   const { baseUrl, password, accountId, allowPrivateNetwork } = resolveAccount(opts);
   const privateApiStatus = getCachedBlueBubblesPrivateApiStatus(accountId);
   const privateApiEnabled = isBlueBubblesPrivateApiStatusEnabled(privateApiStatus);
