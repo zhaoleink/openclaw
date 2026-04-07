@@ -170,10 +170,11 @@ function buildLogger(settings: ResolvedSettings): TsLogger<LogObj> {
   }
 
   const useRolling = isRollingPath(settings.file);
+  const rollingDir = path.dirname(settings.file);
   let currentFile = settings.file;
-  fs.mkdirSync(path.dirname(currentFile), { recursive: true });
+  fs.mkdirSync(rollingDir, { recursive: true });
   if (useRolling) {
-    pruneOldRollingLogs(path.dirname(currentFile));
+    pruneOldRollingLogs(rollingDir);
   }
   let currentFileBytes = getCurrentLogFileBytes(currentFile);
   let warnedAboutSizeCap = false;
@@ -183,11 +184,12 @@ function buildLogger(settings: ResolvedSettings): TsLogger<LogObj> {
       // When using date-rolling filenames, detect midnight crossover and switch
       // files automatically so long-lived child loggers stay on the right file.
       if (useRolling) {
-        const todayFile = defaultRollingPathForToday();
+        const todayFile = rollingPathForToday(rollingDir);
         if (todayFile !== currentFile) {
           currentFile = todayFile;
-          currentFileBytes = 0;
+          currentFileBytes = getCurrentLogFileBytes(currentFile);
           warnedAboutSizeCap = false;
+          pruneOldRollingLogs(rollingDir);
         }
       }
 
@@ -349,9 +351,13 @@ function formatLocalDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-function defaultRollingPathForToday(): string {
+function rollingPathForToday(dir: string): string {
   const today = formatLocalDate(new Date());
-  return path.join(DEFAULT_LOG_DIR, `${LOG_PREFIX}-${today}${LOG_SUFFIX}`);
+  return path.join(dir, `${LOG_PREFIX}-${today}${LOG_SUFFIX}`);
+}
+
+function defaultRollingPathForToday(): string {
+  return rollingPathForToday(DEFAULT_LOG_DIR);
 }
 
 function isRollingPath(file: string): boolean {

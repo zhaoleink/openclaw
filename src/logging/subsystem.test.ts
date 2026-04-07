@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { setConsoleSubsystemFilter } from "./console.js";
 import { resetLogger, setLoggerOverride } from "./logger.js";
@@ -155,5 +158,36 @@ describe("subsystem logger caches file logger", () => {
     log.info("write 1");
     log.info("write 2");
     log.info("write 3");
+  });
+});
+
+describe("file transport date rollover", () => {
+  it("switches to the new date file after midnight", () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-log-rollover-"));
+    const day1 = new Date("2026-04-07T23:59:59.000+08:00");
+
+    vi.useFakeTimers({ now: day1 });
+    try {
+      const day1File = path.join(tmpDir, "openclaw-2026-04-07.log");
+      setLoggerOverride({ level: "info", consoleLevel: "silent", file: day1File });
+      const log = createSubsystemLogger("diagnostic");
+
+      log.info("before midnight");
+      expect(fs.existsSync(day1File)).toBe(true);
+      expect(fs.readFileSync(day1File, "utf8")).toContain("before midnight");
+
+      // Advance past midnight.
+      vi.setSystemTime(new Date("2026-04-08T00:00:01.000+08:00"));
+
+      log.info("after midnight");
+      const day2File = path.join(tmpDir, "openclaw-2026-04-08.log");
+      expect(fs.existsSync(day2File)).toBe(true);
+      expect(fs.readFileSync(day2File, "utf8")).toContain("after midnight");
+      // Day 1 file should NOT contain the post-midnight log.
+      expect(fs.readFileSync(day1File, "utf8")).not.toContain("after midnight");
+    } finally {
+      vi.useRealTimers();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 });
